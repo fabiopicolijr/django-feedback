@@ -1,0 +1,36 @@
+{% extends "reviews/base.html" %}
+
+{% block title %}Your Review{% endblock %}
+
+{% block content %}
+  <form action="/" method="POST">
+    {% csrf_token %}       
+    {% comment %}         
+        {% if has_error %}
+          <p>THis form is invalid - please enter a valid username!</p>
+        {% endif %} 
+    {% endcomment %
+
+    {% comment %} 
+      RENDER METHOD 1: Manually
+        <label for="username">Your name</label>
+        <input id="username" name="username" type="text" /> 
+    {% endcomment %}
+
+    {% comment %} 
+      RENDER METHOD 2: form
+        {{ form }}
+    {% endcomment %}
+
+    {% for field in form %}
+      <div class="form-control {% if field.errors %}errors{% endif %}">
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endfor %}            
+              
+    <button type="submit">Send</button>
+  </form>
+{% endblock %}
+  
