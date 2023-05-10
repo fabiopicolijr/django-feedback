@@ -1,33 +1,20 @@
-from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from django.views import View
 from django.views.generic.base import TemplateView
+from django.views.generic import ListView, DetailView
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
 from .forms import ReviewForm
 from .models import Review
 
 # Create your views here.
 
-# in Django docs, you can find dedicated View classes, like ListView, FormView
-# and etc, test this in future.
-class ReviewView(View): # ListView, FormView and etc
-    def get(self, request):
-        form = ReviewForm()
-
-        return render(request, 'reviews/review.html', {
-            "form": form
-        })        
-
-    def post(self, request):
-        form = ReviewForm(request.POST)
-        
-        if form.is_valid():            
-            form.save()
-            return HttpResponseRedirect("/thank-you")
-
-        return render(request, 'reviews/review.html', {
-            "form": form
-        })        
+class ReviewView(CreateView): 
+    model = Review # will infer the form, you can delete the formClass, but here we are using
+    form_class = ReviewForm
+    template_name = "reviews/review.html"
+    success_url = "/thank-you"
+      
 
 class ThankYouView(TemplateView):    
     template_name = "reviews/thank_you.html"
@@ -37,37 +24,28 @@ class ThankYouView(TemplateView):
         context["message"] = "This Works!"
         return context
     
-class ReviewsListView(TemplateView):
+class ReviewsListView(ListView):
     template_name = "reviews/review_list.html"
+    model = Review
+    context_object_name = "reviews"
+    
+
+class SingleReviewView(DetailView):
+    template_name = "reviews/single_review.html"
+    model = Review    
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        reviews = Review.objects.all()
-        context["reviews"] = reviews
+        loaded_review = self.object
+        request = self.request
+        favorite_id = request.session.get["favorite_review"] 
+        context["is_favorite"] = favorite_id == str(loaded_review.id)
         return context
+    
 
-# not using anymore, because now I'm using classes
-def review_function(request):    
-    if request.method == 'POST':
-        # updating data
-            # existing_model = Review.objects.get()
-            # form = ReviewForm(request.POST, instance=existing_model)
-        # creating data
-        form = ReviewForm(request.POST)
-        
-        if form.is_valid():
-            # review = Review(
-            #     user_name = form.cleaned_data['user_name'],
-            #     review_text = form.cleaned_data['review_text'],
-            #     rating = form.cleaned_data['rating'],
-            # )
-            form.save()
-            
-            return HttpResponseRedirect("/thank-you")
-    else:
-        form = ReviewForm()
-
-    return render(request, 'reviews/review.html', {
-        "form": form
-    })
-
+class AddFavoriteView(View):
+    def post(self, request):
+        review_id = request.POST.get("review_id")        
+        request.session["favorite_review"] = review_id
+        return HttpResponseRedirect("/reviews/" + review_id) # here we should use redirect function to build the url
+    
